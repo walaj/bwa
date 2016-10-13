@@ -5,7 +5,7 @@ WRAP_MALLOC=-DUSE_MALLOC_WRAPPERS
 AR=			ar
 DFLAGS=		-DHAVE_PTHREAD $(WRAP_MALLOC)
 ## moved is.o bwtiindex.o rope.o to LOBJS
-LOBJS=		utils.o kthread.o kstring.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o \
+LOBJS=		utils.o kthread.o ksw.o bwt.o bntseq.o bwa.o bwamem.o bwamem_pair.o \
 			bwamem_extra.o malloc_wrap.o is.o bwtindex.o rope.o rle.o
 AOBJS=		bwashm.o bwase.o bwaseqio.o bwtgap.o bwtaln.o bamlite.o \
 			bwape.o kopen.o pemerge.o maxk.o \
