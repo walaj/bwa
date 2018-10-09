@@ -3,7 +3,7 @@
 #include "bwamem.h"
 #include "bntseq.h"
 #include "kstring.h"
-#include "khash.c"
+#include "khash.h"
 
 /***************************
  * SMEM iterator interface *
