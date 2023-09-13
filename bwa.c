@@ -1,3 +1,29 @@
+/* The MIT License
+
+   Copyright (c) 2018-     Dana-Farber Cancer Institute
+                 2009-2018 Broad Institute, Inc.
+                 2008-2009 Genome Research Ltd. (GRL)
+
+   Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+   BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
 #include <string.h>
 #include <stdio.h>
 #include <zlib.h>
@@ -14,6 +40,7 @@
 #endif
 
 int bwa_verbose = 3;
+int bwa_dbg = 0;
 char bwa_rg_id[256];
 char *bwa_pg;
 
@@ -30,13 +57,23 @@ static inline void trim_readno(kstring_t *s)
 		s->l -= 2, s->s[s->l] = 0;
 }
 
+static inline char *dupkstring(const kstring_t *str, int dupempty)
+{
+	char *s = (str->l > 0 || dupempty)? malloc(str->l + 1) : NULL;
+	if (!s) return NULL;
+
+	memcpy(s, str->s, str->l);
+	s[str->l] = '\0';
+	return s;
+}
+
 static inline void kseq2bseq1(const kseq_t *ks, bseq1_t *s)
 { // TODO: it would be better to allocate one chunk of memory, but probably it does not matter in practice
-	s->name = strdup(ks->name.s);
-	s->comment = ks->comment.l? strdup(ks->comment.s) : 0;
-	s->seq = strdup(ks->seq.s);
-	s->qual = ks->qual.l? strdup(ks->qual.s) : 0;
-	s->l_seq = strlen(s->seq);
+	s->name = dupkstring(&ks->name, 1);
+	s->comment = dupkstring(&ks->comment, 0);
+	s->seq = dupkstring(&ks->seq, 1);
+	s->qual = dupkstring(&ks->qual, 0);
+	s->l_seq = ks->seq.l;
 }
 
 bseq1_t *bseq_read(int chunk_size, int *n_, void *ks1_, void *ks2_)
@@ -144,9 +181,9 @@ uint32_t *bwa_gen_cigar2(const int8_t mat[25], int o_del, int e_del, int o_ins, 
 		max_del = (int)((double)(((l_query+1)>>1) * mat[0] - o_del) / e_del + 1.);
 		max_gap = max_ins > max_del? max_ins : max_del;
 		max_gap = max_gap > 1? max_gap : 1;
-		w = (max_gap + abs(rlen - l_query) + 1) >> 1;
+		w = (max_gap + abs((int)rlen - l_query) + 1) >> 1;
 		w = w < w_? w : w_;
-		min_w = abs(rlen - l_query) + 3;
+		min_w = abs((int)rlen - l_query) + 3;
 		w = w > min_w? w : min_w;
 		// NW alignment
 		if (bwa_verbose >= 4) {
@@ -369,10 +406,17 @@ int bwa_idx2mem(bwaidx_t *idx)
 
 void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
 {
-	int i, n_SQ = 0;
+	int i, n_HD = 0, n_SQ = 0;
 	extern char *bwa_pg;
+	
 	if (hdr_line) {
+		// check for HD line
 		const char *p = hdr_line;
+		if ((p = strstr(p, "@HD")) != 0) {
+			++n_HD;
+		}	
+		// check for SQ lines
+		p = hdr_line;
 		while ((p = strstr(p, "@SQ\t")) != 0) {
 			if (p == hdr_line || *(p-1) == '\n') ++n_SQ;
 			p += 4;
@@ -386,6 +430,9 @@ void bwa_print_sam_hdr(const bntseq_t *bns, const char *hdr_line)
 		}
 	} else if (n_SQ != bns->n_seqs && bwa_verbose >= 2)
 		fprintf(stderr, "[W::%s] %d @SQ lines provided with -H; %d sequences in the index. Continue anyway.\n", __func__, n_SQ, bns->n_seqs);
+	if (n_HD == 0) {
+		err_printf("@HD\tVN:1.5\tSO:unsorted\tGO:query\n");
+	}
 	if (hdr_line) err_printf("%s\n", hdr_line);
 	if (bwa_pg) err_printf("%s\n", bwa_pg);
 }
@@ -414,10 +461,14 @@ char *bwa_set_rg(const char *s)
 		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] the read group line is not started with @RG\n", __func__);
 		goto err_set_rg;
 	}
+	if (strstr(s, "\t") != NULL) {
+		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] the read group line contained literal <tab> characters -- replace with escaped tabs: \\t\n", __func__);
+		goto err_set_rg;
+	}
 	rg_line = strdup(s);
 	bwa_escape(rg_line);
 	if ((p = strstr(rg_line, "\tID:")) == 0) {
-		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] no ID at the read group line\n", __func__);
+		if (bwa_verbose >= 1) fprintf(stderr, "[E::%s] no ID within the read group line\n", __func__);
 		goto err_set_rg;
 	}
 	p += 4;

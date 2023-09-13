@@ -1,7 +1,35 @@
+Release 0.7.17 (23 October 2017)
+--------------------------------
+
+This release adds option -q to preserve the mapping quality of split alignment
+with a lower alignment score than the primary alignment. Option -5
+automatically applies -q as well.
+
+(0.7.17: 23 October 2017, r1188)
+
+
+
+Release 0.7.16 (30 July 2017)
+-----------------------------
+
+This release added a couple of minor features and incorporated multiple pull
+requests, including:
+
+ * Added option -5, which is useful to some Hi-C pipelines.
+
+ * Fixed an error with samtools sorting (#129). Updated download link for
+   GRCh38 (#123). Fixed README MarkDown formatting (#70). Addressed multiple
+   issues via a collected pull request #139 by @jmarshall. Avoid malformatted
+   SAM header when -R is used with TAB (#84). Output mate CIGAR (#138).
+
+(0.7.16: 30 July 2017, r1180)
+
+
+
 Release 0.7.15 (31 May 2016)
 ----------------------------
 
-Fixed a long existing bug which potentially leads underestimated insert size
+Fixed a long existing bug which potentially leads to underestimated insert size
 upper bound. This bug should have little effect in practice.
 
 (0.7.15: 31 May 2016, r1140)
