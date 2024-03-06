@@ -450,7 +450,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
 {
 	bsw2stack_t *stack = (bsw2stack_t*)pool->stack;
 	bwtsw2_t *b, *b1, **b_ret;
-	int i, j, score_mat[16], *heap, heap_size, n_tot = 0;
+	int i, j, score_mat[16], *heap, heap_size; //, n_tot = 0;
 	struct rusage curr, last;
 	khash_t(qintv) *rhash;
 	khash_t(64) *chash;
@@ -483,7 +483,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
 		bwtint_t k, l;
 
 		v = stack_pop(stack); old_n = v->n;
-		n_tot += v->n;
+		//n_tot += v->n;
 
 		for (i = 0; i < v->n; ++i) { // test max depth and band width
 			bsw2cell_t *p = v->array + i;
